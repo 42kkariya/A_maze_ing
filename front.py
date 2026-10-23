@@ -1,4 +1,12 @@
 def input_file(file: str) -> dict:
+    """迷路ファイルを読み込んで辞書形式で返す。
+
+    Args:
+        file: 迷路ファイルのパス。16進数グリッド＋空行＋メタ情報の形式。
+
+    Returns:
+        maze, entry, exit_, path を含む辞書。読み込み失敗時は None。
+    """
     try:
         with open(file) as f:
             lines = f.read().splitlines()
@@ -27,56 +35,79 @@ def input_file(file: str) -> dict:
         return None
 
 
-def draw_cell(cell: int, is_last_col: bool, is_last_row: bool, on_path: bool = False) -> list[str]:
-    north = (cell >> 0) & 1
-    east  = (cell >> 1) & 1
-    south = (cell >> 2) & 1
-    west  = (cell >> 3) & 1
+def draw_maze(
+    maze: list[list[int]],
+    color: str = "\033[37m",
+    path_coords: list[tuple] | None = None,
+) -> None:
+    """迷路をUnicodeボックス描画文字でターミナルに表示する。
 
-    top = "+-" if north == 1 else "+ "
-    l = "|" if west == 1 else " "
-    mark = "." if on_path else " "
-    mid = l + mark
-    if is_last_col:
-        top += "+"
-        r = "|" if east == 1 else " "
-        mid += r
-    if is_last_row:
-        bot = "+-" if south == 1 else "+ "
-        if is_last_col:
-            bot += "+"
-    else:
-        bot = ""
+    各セルのビットエンコード: bit0=北, bit1=東, bit2=南, bit3=西 (1=壁あり)。
+    交差点ごとに上下左右4方向の壁を参照して適切なボックス文字を選択する。
 
-    return [top, mid, bot]
-
-def draw_maze(maze: list[list[int]], color: str = "\033[37m", path_coords: list[tuple] | None = None) -> None:
+    Args:
+        maze: 2次元配列。maze[y][x] がセルの壁情報 (16進数1桁)。
+        color: ANSIエスケープカラーコード。デフォルトは白。
+        path_coords: 最短経路の座標リスト [(x, y), ...]。None なら非表示。
+    """
+    H = len(maze)
+    W = len(maze[0])
     reset = "\033[0m"
-    last_row = len(maze) - 1
-    last_col = len(maze[0]) - 1
     coords = set(path_coords) if path_coords else set()
-    for y, maze_row in enumerate(maze):
-        row_top = ""
-        row_mid = ""
-        row_bot = ""
-        for x, cell in enumerate(maze_row):
-            is_last_col = (x == last_col)
-            is_last_row = (y == last_row)
-            on_path = (x, y) in coords
-            parts = draw_cell(cell, is_last_col, is_last_row, on_path)
-            row_top += parts[0]
-            row_mid += parts[1]
-            row_bot += parts[2]
-        print(color + row_top + reset)
-        print(color + row_mid + reset)
-        if row_bot:
-            print(color + row_bot + reset)
+
+    def h_wall(cx: int, cy: int) -> int:
+        """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。"""
+        if cy == H:
+            return (maze[H - 1][cx] >> 2) & 1
+        return (maze[cy][cx] >> 0) & 1
+
+    def v_wall(cx: int, cy: int) -> int:
+        """交差点 (cx, cy) から下方向への垂直壁の有無を返す (1=壁あり)。"""
+        if cx == W:
+            return (maze[cy][W - 1] >> 1) & 1
+        return (maze[cy][cx] >> 3) & 1
+
+    corners = {
+        (0, 0, 0, 0): " ", (1, 0, 0, 0): "╴",
+        (0, 1, 0, 0): "╶", (1, 1, 0, 0): "─",
+        (0, 0, 1, 0): "╵", (1, 0, 1, 0): "┘",
+        (0, 1, 1, 0): "└", (1, 1, 1, 0): "┴",
+        (0, 0, 0, 1): "╷", (1, 0, 0, 1): "┐",
+        (0, 1, 0, 1): "┌", (1, 1, 0, 1): "┬",
+        (0, 0, 1, 1): "│", (1, 0, 1, 1): "┤",
+        (0, 1, 1, 1): "├", (1, 1, 1, 1): "┼",
+    }
+
+    for cy in range(H + 1):
+        corner_row = ""
+        for cx in range(W + 1):
+            left = h_wall(cx - 1, cy) if cx > 0 else 0
+            right = h_wall(cx, cy) if cx < W else 0
+            up = v_wall(cx, cy - 1) if cy > 0 else 0
+            down = v_wall(cx, cy) if cy < H else 0
+            corner_row += corners[(left, right, up, down)]
+            if cx < W:
+                corner_row += "─" if h_wall(cx, cy) else " "
+        print(color + corner_row + reset)
+        if cy < H:
+            cell_row = ""
+            for cx in range(W + 1):
+                cell_row += "│" if v_wall(cx, cy) else " "
+                if cx < W:
+                    cell_row += "·" if (cx, cy) in coords else " "
+            print(color + cell_row + reset)
+
 
 COLORS = ["\033[37m", "\033[31m", "\033[32m", "\033[33m", "\033[34m"]
 COLOR_NAMES = ["white", "red", "green", "yellow", "blue"]
 
 
 def menu(data: dict) -> None:
+    """インタラクティブメニューを表示し、ユーザー操作を受け付けるループ。
+
+    Args:
+        data: input_file() の返り値。maze, entry, exit_, path を含む辞書。
+    """
     if data is None:
         print("Error: 迷路データの読み込みに失敗しました")
         return
@@ -105,9 +136,18 @@ def menu(data: dict) -> None:
             break
         else:
             print("Error:  無効な入力です。1-4の数字で選択してください")
-            pass
+
 
 def calc_path(entry: tuple, path: str) -> list[tuple]:
+    """経路文字列から座標リストを生成する。
+
+    Args:
+        entry: 開始座標 (x, y)。
+        path: N/E/S/W の方向文字列 (例: "EESS")。
+
+    Returns:
+        経路上の座標リスト [(x, y), ...]。entry を含む。
+    """
     moves = {"N": (0, -1), "E": (1, 0), "S": (0, 1), "W": (-1, 0)}
     coords = [entry]
     x, y = entry
@@ -117,4 +157,3 @@ def calc_path(entry: tuple, path: str) -> list[tuple]:
         y += dy
         coords.append((x, y))
     return coords
-
