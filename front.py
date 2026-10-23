@@ -1,4 +1,4 @@
-def input_file(file: str) -> dict:
+def input_file(file: str) -> dict | None:
     """迷路ファイルを読み込んで辞書形式で返す。
 
     Args:
