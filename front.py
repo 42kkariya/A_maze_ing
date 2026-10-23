@@ -1,23 +1,31 @@
 def input_file(file: str) -> dict:
-    with open(file) as f:
-        lines = f.read().splitlines()
+    try:
+        with open(file) as f:
+            lines = f.read().splitlines()
 
-    blank = lines.index("")
-    grid_lines = lines[:blank]
-    meta_lines = lines[blank + 1:]
+        blank = lines.index("")
+        grid_lines = lines[:blank]
+        meta_lines = lines[blank + 1:]
 
-    maze = []
-    for line in grid_lines:
-        row = [int(c, 16) for c in line]
-        maze.append(row)
+        maze = []
+        for line in grid_lines:
+            row = [int(c, 16) for c in line]
+            maze.append(row)
 
-    ex, ey = meta_lines[0].split(",")
-    entry = (int(ex), int(ey))
-    xx, xy = meta_lines[1].split(",")
-    exit_ = (int(xx), int(xy))
-    path = meta_lines[2]
+        ex, ey = meta_lines[0].split(",")
+        entry = (int(ex), int(ey))
+        xx, xy = meta_lines[1].split(",")
+        exit_ = (int(xx), int(xy))
+        path = meta_lines[2]
 
-    return {"maze": maze, "entry": entry, "exit": exit_, "path": path}
+        return {"maze": maze, "entry": entry, "exit": exit_, "path": path}
+    except FileNotFoundError:
+        print(f"Error: {file} が見つかりません")
+        return None
+    except ValueError:
+        print(f"Error: {file} のフォーマットが不正です")
+        return None
+
 
 def draw_cell(cell: int, is_last_col: bool, is_last_row: bool, on_path: bool = False) -> list[str]:
     north = (cell >> 0) & 1
@@ -69,6 +77,9 @@ COLOR_NAMES = ["white", "red", "green", "yellow", "blue"]
 
 
 def menu(data: dict) -> None:
+    if data is None:
+        print("Error: 迷路データの読み込みに失敗しました")
+        return
     show_path = False
     color_index = 0
     maze = data["maze"]
@@ -92,6 +103,9 @@ def menu(data: dict) -> None:
             color_index = (color_index + 1) % len(COLORS)
         elif choice == "4":
             break
+        else:
+            print("Error:  無効な入力です。1-4の数字で選択してください")
+            pass
 
 def calc_path(entry: tuple, path: str) -> list[tuple]:
     moves = {"N": (0, -1), "E": (1, 0), "S": (0, 1), "W": (-1, 0)}
