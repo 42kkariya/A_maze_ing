@@ -1,8 +1,8 @@
 import sys
+from a_maze_ing import Maze_generator
 
 
-
-def Loading_config() -> dict[str: int | bool | str]:
+def Loading_config() -> dict[str: int | bool | str | tuple[int, int]]:
 
 
     config = {}
@@ -12,12 +12,16 @@ def Loading_config() -> dict[str: int | bool | str]:
             config_texts = file.read().splitlines()
 
             for config_text in config_texts:
-                if config_text in "#":
+
+                line = config_text.strip()
+                if not line or line.startswith("#"):
                     continue
 
-                key, value = config_text("=")
+                key, value = line.split("=")
+                key = key.strip()
+                value = value.strip()
 
-                if key in "OUTPUT_FILE":
+                if key == "OUTPUT_FILE":
                     config[key] = value
 
                 elif key in "PERFECT":
@@ -25,6 +29,13 @@ def Loading_config() -> dict[str: int | bool | str]:
                         config[key] = bool(value)
                     except ValueError as e:
                         print(e)
+
+                elif key == "ENTRY" or key == "EXIT":
+                    try:
+                        config[key] = tuple(int(v) for v in value.split(","))
+                    except ValueError as e:
+                        print(e)
+
                 else:
                     try:
                         config[key] = int(value)
@@ -42,3 +53,4 @@ def Loading_config() -> dict[str: int | bool | str]:
 def main() -> None:
 
     config = Loading_config()
+    Maze_gen = Maze_generator()
