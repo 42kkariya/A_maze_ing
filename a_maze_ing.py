@@ -1,56 +1,103 @@
 import sys
-from a_maze_ing import Maze_generator
+
+ConfigValue = int | bool | str | tuple[int, int]
 
 
-def Loading_config() -> dict[str: int | bool | str | tuple[int, int]]:
+def loading_config(file_name: str) -> dict[str, ConfigValue]:
+    """設定ファイルを読み込み、各値を適切な型に変換する。"""
+    config: dict[str, ConfigValue] = {}
 
+    with open(file_name, encoding="utf-8") as file:
+        for line_number, text in enumerate(file, start=1):
+            line = text.strip()
 
-    config = {}
+            if not line or line.startswith("#"):
+                continue
 
-    try:
-        with open(sys.argv[1], "r") as file:
-            config_texts = file.read().splitlines()
+            if "=" not in line:
+                raise ValueError(
+                    f"{line_number}行目: KEY=VALUEの形式で書いてください"
+                )
 
-            for config_text in config_texts:
+            key, value = [s.strip() for s in line.split("=", 1)]
 
-                line = config_text.strip()
-                if not line or line.startswith("#"):
-                    continue
+            if key in config:
+                continue
 
-                key, value = line.split("=")
-                key = key.strip()
-                value = value.strip()
+            if key in ("WIDTH", "HEIGHT", "SEED"):
+                try:
+                    config[key] = int(value)
+                except ValueError as e:
+                    raise ValueError(
+                        f"{line_number}行目: {key}には整数を指定してください"
+                    ) from e
 
-                if key == "OUTPUT_FILE":
-                    config[key] = value
+            elif key in ("ENTRY", "EXIT"):
+                try:
+                    x, y = value.split(",")
+                    config[key] = (int(x), int(y))
+                except ValueError as e:
+                    raise ValueError(
+                        f"{line_number}行目: {key}は"
+                        "0,0のように整数2個で指定してください"
+                    ) from e
 
-                elif key in "PERFECT":
-                    try:
-                        config[key] = bool(value)
-                    except ValueError as e:
-                        print(e)
+            elif key == "PERFECT":
+                if value not in ("True", "False"):
+                    raise ValueError(
+                        f"{line_number}行目: PERFECTは"
+                        "TrueかFalseで指定してください"
+                    )
+                config[key] = value == "True"
 
-                elif key == "ENTRY" or key == "EXIT":
-                    try:
-                        config[key] = tuple(int(v) for v in value.split(","))
-                    except ValueError as e:
-                        print(e)
+            elif key == "OUTPUT_FILE":
+                if not value:
+                    raise ValueError(
+                        f"{line_number}行目: OUTPUT_FILEに"
+                        "出力ファイル名を指定してください"
+                    )
+                config[key] = value
 
-                else:
-                    try:
-                        config[key] = int(value)
-                    except ValueError as e:
-                        print(e)
+            else:
+                raise ValueError(
+                    f"{line_number}行目: 未対応のキーです: {key}"
+                )
 
-    except FileNotFoundError as e:
-        print(e)
+    required = {
+        "WIDTH", "HEIGHT", "ENTRY",
+        "EXIT", "OUTPUT_FILE", "PERFECT",
+    }
+    missing = required - config.keys()
 
-    except PermissionError as e:
-        print(e)
+    if missing:
+        raise ValueError(
+            f"必須項目が不足しています: {', '.join(missing)}"
+        )
 
     return config
 
-def main() -> None:
 
-    config = Loading_config()
-    Maze_gen = Maze_generator()
+def main() -> None:
+    if len(sys.argv) != 2:
+        print("実行方法: python3 a_maze_ing.py config.txt")
+        sys.exit(1)
+
+    try:
+        config = loading_config(sys.argv[1])
+        
+
+    except FileNotFoundError:
+        print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}")
+        sys.exit(1)
+
+    except PermissionError:
+        print("エラー: 設定ファイルを読み込む権限がありません")
+        sys.exit(1)
+
+    except Exception as e:
+        print(f"エラー: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

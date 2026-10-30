@@ -14,22 +14,19 @@ class Cell:
 
 class Maze_generator:
     def __init__(self, width: int, height: int, entry: tuple[int, int], 
-                exit: tuple[int, int], output_file: str, perfect: bool = False) -> None:
+                exit: tuple[int, int], output_file: str,
+                seed: int | None = None, perfect: bool = False) -> None:
         self.width = width
         self.height = height
         self.entry = entry
         self.exit = exit
         self.output_file = output_file
+        self.seed = seed
         self.perfect = perfect
-    def maze_gen(self, seed: int | None = None) -> None:
-        """DFSを使ったランダム化バックトラック法による迷路生成。
+    def maze_gen(self) -> None:
+        """DFSを使ったランダム化バックトラック法による迷路生成。"""
 
-        Args:
-            seed: 乱数の初期値。同じ設定とseedで同じ迷路を再現する。
-            Noneの場合は、実行ごとにランダムに生成する。
-        """
-
-        random.seed(seed)
+        random.seed(self.seed)
         self.grid = [
         [Cell() for _ in range(self.width)]
         for _ in range(self.height)
@@ -407,7 +404,7 @@ class Maze_generator:
 
     def write_to_file(self) -> None:
         """迷路、最短経路を指定形式でファイルに保存する。 """
-        
+
         shortest_path = self.find_shortest_path()
         try:
             with open(self.output_file, "w") as f:
