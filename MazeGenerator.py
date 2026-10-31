@@ -4,6 +4,7 @@ import sys
 
 
 class Cell:
+    """Cellの情報を保持する。"""
     def __init__(self) -> None:
         """変数の初期化をする。"""
         self.north = True
@@ -16,6 +17,7 @@ class Cell:
 
 
 class Mazegenerator:
+    """迷路の生成、最短経路探索、ファイルへの出力。"""
     def __init__(self, width: int, height: int, entry: tuple[int, int],
                  exit: tuple[int, int], output_file: str,
                  *, seed: int | None = None, perfect: bool = False) -> None:

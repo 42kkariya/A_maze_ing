@@ -6,6 +6,7 @@ ConfigValue = int | bool | str | tuple[int, int]
 
 
 class RequiredConfig(TypedDict):
+    """設定ファイルの型ヒント"""
     WIDTH: int
     HEIGHT: int
     ENTRY: tuple[int, int]
@@ -15,6 +16,7 @@ class RequiredConfig(TypedDict):
 
 
 class Config(RequiredConfig, total=False):
+    """設定ファイルの型ヒント"""
     SEED: int
 
 
