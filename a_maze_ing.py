@@ -1,6 +1,6 @@
 import sys
 from typing import TypedDict, cast
-from MazeGenerator import Mazegenerator
+from mazegen import Mazegenerator
 from front import input_file, menu
 
 ConfigValue = int | bool | str | tuple[int, int]
