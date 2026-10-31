@@ -24,7 +24,9 @@ class Mazegenerator:
         self.output_file = output_file
         self.seed = seed
         self.perfect = perfect
-
+        self.grid = []
+        self.open_extra = False
+        self.dead_ends = []
 
     def maze_gen(self) -> None:
         """DFSを使ったランダム化バックトラック法による迷路生成。"""
@@ -34,24 +36,23 @@ class Mazegenerator:
         [Cell() for _ in range(self.width)]
         for _ in range(self.height)
         ]
-        self.stack = [self.entry]
+        stack = [self.entry]
 
         x, y = self.entry
         self.grid[y][x].visited = True
         self.open_extra = False
-        self.extra_open_count = 0
 
         self.place_42_pattern()
-        while self.stack:
-            now_x, now_y = self.stack[-1]
+        while stack:
+            now_x, now_y = stack[-1]
             next_grid = self.decide_next(now_x, now_y)
 
             if next_grid is None:
-                self.stack.pop()
+                stack.pop()
                 continue
 
             self.carve_passage(next_grid, now_x, now_y)
-            self.stack.append(next_grid)
+            stack.append(next_grid)
 
         if not self.perfect:
             self.open_extra = True
@@ -74,7 +75,6 @@ class Mazegenerator:
                 continue
 
             self.carve_passage(next_grid, dead_x, dead_y)
-            self.extra_open_count += 1
 
 
     def would_create_open_area(
@@ -335,21 +335,21 @@ class Mazegenerator:
         Returns:
             最短ルートのリスト
         """
-        self.queue = deque([self.entry])
+        queue = deque([self.entry])
         came_from = {}
         self.grid[self.entry[1]][self.entry[0]].path_visited = True
         shortest_path = []
         current = self.exit
 
-        while self.queue:
-            now_x, now_y = self.queue.popleft()
+        while queue:
+            now_x, now_y = queue.popleft()
             if (now_x, now_y) == self.exit:
                 break
 
             for next_x, next_y in self.get_accessible_neighbors(now_x, now_y):
                 came_from[(next_x, next_y)] = (now_x, now_y)
                 self.grid[next_y][next_x].path_visited = True
-                self.queue.append((next_x, next_y))
+                queue.append((next_x, next_y))
 
         while current != self.entry:
             shortest_path.append(current)
