@@ -1,4 +1,5 @@
 import sys
+from MazeGenerator import Mazegenerator
 
 ConfigValue = int | bool | str | tuple[int, int]
 
@@ -22,7 +23,9 @@ def loading_config(file_name: str) -> dict[str, ConfigValue]:
             key, value = [s.strip() for s in line.split("=", 1)]
 
             if key in config:
-                continue
+                raise ValueError(
+                    f"{key}が2つ存在します。"
+                )
 
             if key in ("WIDTH", "HEIGHT", "SEED"):
                 try:
@@ -74,6 +77,16 @@ def loading_config(file_name: str) -> dict[str, ConfigValue]:
             f"必須項目が不足しています: {', '.join(missing)}"
         )
 
+    if (config["ENTRY"] == config["EXIT"] or
+        config["HEIGHT"] > 0 or config["WIDTH"] > 0 or
+        0 <= config["ENTRY"][0] < config["WIDTH"] or
+        0 <= config["ENTRY"][1] < config["HEIGHT"] or
+        0 <= config["EXIT"][0] < config["WIDTH"] or
+        0 <= config["EXIT"][1] < config["HEIGHT"]):
+
+        raise ValueError("不正な値が入力されています。")
+
+
     return config
 
 
@@ -84,18 +97,28 @@ def main() -> None:
 
     try:
         config = loading_config(sys.argv[1])
-        
+        maze = Mazegenerator(
+        config["WIDTH"], config["HEIGHT"],
+        config["ENTRY"], config["EXIT"],
+        config["OUTPUT_FILE"],
+        seed=config.get("SEED"),
+        perfect=config["PERFECT"],
+        )
+        maze.maze_gen()
+        maze.write_to_file()
 
     except FileNotFoundError:
-        print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}")
+        print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}"
+              , file=sys.stderr)
         sys.exit(1)
 
     except PermissionError:
-        print("エラー: 設定ファイルを読み込む権限がありません")
+        print("エラー: 設定ファイルを読み込む権限がありません"
+              ,file=sys.stderr)
         sys.exit(1)
 
     except Exception as e:
-        print(f"エラー: {e}")
+        print(f"エラー: {e}", file=sys.stderr)
         sys.exit(1)
 
 

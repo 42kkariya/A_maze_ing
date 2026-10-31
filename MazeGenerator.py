@@ -1,6 +1,6 @@
 import random
 from collections import deque
-
+import sys
 
 class Cell:
     def __init__(self) -> None:
@@ -12,10 +12,11 @@ class Cell:
         self.ft = False
         self.path_visited = False
 
-class Maze_generator:
-    def __init__(self, width: int, height: int, entry: tuple[int, int], 
+
+class Mazegenerator:
+    def __init__(self, width: int, height: int, entry: tuple[int, int],
                 exit: tuple[int, int], output_file: str,
-                seed: int | None = None, perfect: bool = False) -> None:
+                *,seed: int | None = None, perfect: bool = False) -> None:
         self.width = width
         self.height = height
         self.entry = entry
@@ -23,6 +24,8 @@ class Maze_generator:
         self.output_file = output_file
         self.seed = seed
         self.perfect = perfect
+
+
     def maze_gen(self) -> None:
         """DFSを使ったランダム化バックトラック法による迷路生成。"""
 
@@ -54,7 +57,7 @@ class Maze_generator:
             self.open_extra = True
             self.find_dead_ends()
             self.open_extra_passage()
-            
+
 
 
     def open_extra_passage(self) -> None:
@@ -69,9 +72,10 @@ class Maze_generator:
 
             if next_grid is None or wall_count != 3:
                 continue
-            
+
             self.carve_passage(next_grid, dead_x, dead_y)
             self.extra_open_count += 1
+
 
     def would_create_open_area(
         self,
@@ -87,7 +91,7 @@ class Maze_generator:
             next_grid: 壁を壊す方向のセル
 
         Returns:
-            壁を壊して良いかの判断。
+            壁を壊したらダメかの判断。
         """
         next_x, next_y = next_grid
 
@@ -148,7 +152,8 @@ class Maze_generator:
                     return True
 
         return False
-    
+
+
     def find_dead_ends(self) -> None:
         """行き止まりのセルの座標をself.dead_endsに保存する。"""
         self.dead_ends = []
@@ -191,9 +196,9 @@ class Maze_generator:
                     maze_center = (self.width // 2, self.height // 2)
                     if (ft_x, ft_y) == maze_center:
                         return False
-                
+
             return True
-        
+
 
         place_42 = [(-1, 0), (-2, 0), (-3, 0), (-3, -1),
                     (-3, -2), (-1, 1), (-1, 2), (1, 0),
@@ -219,7 +224,8 @@ class Maze_generator:
                     break
 
         if self.height < 7 or self.width < 9 or not can_place:
-            print("Maze too small to include the '42' pattern. Continuing without it.")
+            print("Maze too small to include the '42' pattern. Continuing without it.",
+                  file=sys.stderr)
             return
 
         for d_x, d_y in place_42:
@@ -227,7 +233,7 @@ class Maze_generator:
             ft_y = center_y + d_y
 
             self.grid[ft_y][ft_x].ft = True
-            
+
 
     def carve_passage(
             self,
@@ -242,7 +248,7 @@ class Maze_generator:
             now_x: 現在地のx座標
             now_y: 現在地のy座標
         """
-        
+
         next_x, next_y = next_grid
         direction = (next_x - now_x + 2 * (next_y - now_y))
         now_cell = self.grid[now_y][now_x]
@@ -266,16 +272,17 @@ class Maze_generator:
 
         next_cell.visited = True
 
+
     def decide_next(self,
                     now_x: int,
                     now_y: int
     ) -> tuple[int, int] | None:
         """条件を満たす隣接セルから、ランダムに移動先を選ぶ。
-        
+
         Args:
             now_x: 現在地のx座標
             now_y: 現在地のy座標
-        
+
         Returns:
             選ばれたセルの座標。候補がない場合はNone。
         """
@@ -318,9 +325,10 @@ class Maze_generator:
 
         if not next_list:
             return None
-        
+
         return random.choice(next_list)
-        
+
+
     def find_shortest_path(self) -> list[tuple[int, int]]:
         """BFSによる最短ルート検索。
 
@@ -376,7 +384,7 @@ class Maze_generator:
         for x, y in checks:
             next_x = now_x + x
             next_y = now_y + y
-            
+
             if not (0 <= next_x < self.width
                     and 0 <= next_y < self.height):
                 continue
@@ -387,16 +395,16 @@ class Maze_generator:
                 continue
 
 
-            if x == 1 and now_cell.east == False:
+            if x == 1 and not now_cell.east:
                 result.append((next_x, next_y))
 
-            if y == 1 and now_cell.south == False:
+            if y == 1 and not now_cell.south:
                 result.append((next_x, next_y))
 
-            if x == -1 and now_cell.west == False:
+            if x == -1 and not now_cell.west:
                 result.append((next_x, next_y))
 
-            if y == -1 and now_cell.north == False:
+            if y == -1 and not now_cell.north:
                 result.append((next_x, next_y))
 
         return result
