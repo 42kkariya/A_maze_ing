@@ -27,6 +27,9 @@ lint-strict:
 	$(PYTHON) -m flake8 .
 	$(PYTHON) -m mypy . --strict
 
+test:
+	$(PYTHON) -m pytest tests
+
 build:
 	$(PYTHON) -m build
 	cp dist/mazegen-*.whl .
@@ -38,4 +41,7 @@ clean:
 fclean: clean
 	rm -rf $(VENV) mazegen-*.whl mazegen-*.tar.gz
 
-.PHONY: all install run debug lint lint-strict build clean fclean
+analyze:
+	$(PYTHON) tools/maze_analyzer.py maze.txt
+
+.PHONY: all install run debug lint lint-strict test build clean fclean analyze
