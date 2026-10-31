@@ -5,6 +5,7 @@ import sys
 
 class Cell:
     def __init__(self) -> None:
+        """変数の初期化をする。"""
         self.north = True
         self.east = True
         self.south = True
@@ -18,6 +19,7 @@ class Mazegenerator:
     def __init__(self, width: int, height: int, entry: tuple[int, int],
                  exit: tuple[int, int], output_file: str,
                  *, seed: int | None = None, perfect: bool = False) -> None:
+        """変数の初期化をする。"""
         self.width = width
         self.height = height
         self.entry = entry
