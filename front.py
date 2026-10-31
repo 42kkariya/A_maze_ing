@@ -1,7 +1,17 @@
-from typing import Callable
+from typing import Callable, TypedDict
+
+Coord = tuple[int, int]
 
 
-def input_file(file: str) -> dict | None:
+class MazeData(TypedDict):
+    """input_file() が返す、表示に使う迷路の情報。"""
+    maze: list[list[int]]
+    entry: Coord
+    exit: Coord
+    path: str
+
+
+def input_file(file: str) -> MazeData | None:
     """迷路ファイルを読み込んで辞書形式で返す。
 
     Args:
@@ -41,9 +51,9 @@ def input_file(file: str) -> dict | None:
 def draw_maze(
     maze: list[list[int]],
     color: str = "\033[37m",
-    path_coords: list[tuple] | None = None,
-    entry: tuple | None = None,
-    exit_: tuple | None = None,
+    path_coords: list[Coord] | None = None,
+    entry: Coord | None = None,
+    exit_: Coord | None = None,
 ) -> None:
     """迷路をUnicodeボックス描画文字でターミナルに表示する。
 
@@ -61,7 +71,7 @@ def draw_maze(
     W = len(maze[0])
     reset = "\033[0m"
     # 経路上の各セルが、どの方向の隣のセルとつながっているか
-    links: dict[tuple, set[str]] = {}
+    links: dict[Coord, set[str]] = {}
     step = {(1, 0): ("E", "W"), (-1, 0): ("W", "E"),
             (0, 1): ("S", "N"), (0, -1): ("N", "S")}
     if path_coords:
@@ -171,8 +181,8 @@ PATH_CHARS = {
 
 
 def menu(
-    data: dict | None,
-    regenerate: Callable[[], dict | None] | None = None,
+    data: MazeData | None,
+    regenerate: Callable[[], MazeData | None] | None = None,
 ) -> None:
     """インタラクティブメニューを表示し、ユーザー操作を受け付けるループ。
 
@@ -228,7 +238,7 @@ def menu(
             print("Error:  無効な入力です。1-4の数字で選択してください")
 
 
-def calc_path(entry: tuple, path: str) -> list[tuple]:
+def calc_path(entry: Coord, path: str) -> list[Coord]:
     """経路文字列から座標リストを生成する。
 
     Args:
