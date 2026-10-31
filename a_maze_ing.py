@@ -1,6 +1,7 @@
 import sys
 from typing import TypedDict, cast
 from MazeGenerator import Mazegenerator
+from front import input_file, menu
 
 ConfigValue = int | bool | str | tuple[int, int]
 
@@ -112,22 +113,38 @@ def loading_config(file_name: str) -> Config:
     return result
 
 
+def generate(config: Config, seed: int | None) -> dict | None:
+    """迷路を生成して OUTPUT_FILE に書き出し、表示用の辞書を返す。
+
+    Args:
+        config: loading_config() の返り値。
+        seed: 乱数のシード。None なら毎回違う迷路になる。
+
+    Returns:
+        input_file() の返り値。書き出したファイルを読み直したもの。
+    """
+    maze = Mazegenerator(
+        config["WIDTH"], config["HEIGHT"],
+        config["ENTRY"], config["EXIT"],
+        config["OUTPUT_FILE"],
+        seed=seed,
+        perfect=config["PERFECT"],
+    )
+    maze.maze_gen()
+    maze.write_to_file()
+    return input_file(config["OUTPUT_FILE"])
+
+
 def main() -> None:
+    """設定ファイルを読み込み、迷路を生成して表示する。"""
     if len(sys.argv) != 2:
         print("実行方法: python3 a_maze_ing.py config.txt")
         sys.exit(1)
 
     try:
         config = loading_config(sys.argv[1])
-        maze = Mazegenerator(
-            config["WIDTH"], config["HEIGHT"],
-            config["ENTRY"], config["EXIT"],
-            config["OUTPUT_FILE"],
-            seed=config.get("SEED"),
-            perfect=config["PERFECT"],
-        )
-        maze.maze_gen()
-        maze.write_to_file()
+        # 最初の迷路は SEED を使い、再生成のときは毎回違う迷路にする
+        data = generate(config, config.get("SEED"))
 
     except FileNotFoundError:
         print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}", file=sys.stderr)
@@ -140,6 +157,8 @@ def main() -> None:
     except Exception as e:
         print(f"エラー: {e}", file=sys.stderr)
         sys.exit(1)
+
+    menu(data, lambda: generate(config, None))
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+from typing import Callable
+
+
 def input_file(file: str) -> dict | None:
     """迷路ファイルを読み込んで辞書形式で返す。
 
@@ -39,6 +42,8 @@ def draw_maze(
     maze: list[list[int]],
     color: str = "\033[37m",
     path_coords: list[tuple] | None = None,
+    entry: tuple | None = None,
+    exit_: tuple | None = None,
 ) -> None:
     """迷路をUnicodeボックス描画文字でターミナルに表示する。
 
@@ -49,20 +54,56 @@ def draw_maze(
         maze: 2次元配列。maze[y][x] がセルの壁情報 (16進数1桁)。
         color: ANSIエスケープカラーコード。デフォルトは白。
         path_coords: 最短経路の座標リスト [(x, y), ...]。None なら非表示。
+        entry: 入口の座標 (x, y)。S で表示する。None なら印なし。
+        exit_: 出口の座標 (x, y)。G で表示する。None なら印なし。
     """
     H = len(maze)
     W = len(maze[0])
     reset = "\033[0m"
-    coords = set(path_coords) if path_coords else set()
+    # 経路上の各セルが、どの方向の隣のセルとつながっているか
+    links: dict[tuple, set[str]] = {}
+    step = {(1, 0): ("E", "W"), (-1, 0): ("W", "E"),
+            (0, 1): ("S", "N"), (0, -1): ("N", "S")}
+    if path_coords:
+        for (ax, ay), (bx, by) in zip(path_coords, path_coords[1:]):
+            a_dir, b_dir = step[(bx - ax, by - ay)]
+            links.setdefault((ax, ay), set()).add(a_dir)
+            links.setdefault((bx, by), set()).add(b_dir)
+    # 印の後に壁の色へ戻す
+    entry_mark = ENTRY_COLOR + "S" + reset + color
+    exit_mark = EXIT_COLOR + "G" + reset + color
+    ft_mark = FT_COLOR + "█" + reset + color
+
+    def path_mark(char: str) -> str:
+        """経路の線の1文字を経路の色で返す。"""
+        return PATH_COLOR + char + reset + color
+
+    def path_char(x: int, y: int) -> str:
+        """セル (x, y) の経路の線の形を、つながる方向から選ぶ。"""
+        return PATH_CHARS[frozenset(links[(x, y)])]
+
+    def is_ft(x: int, y: int) -> bool:
+        """セル (x, y) が四方を壁で囲まれた42模様のセルかを返す。"""
+        return 0 <= x < W and 0 <= y < H and maze[y][x] == 0xF
 
     def h_wall(cx: int, cy: int) -> int:
-        """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。"""
+        """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。
+
+        上下とも42模様のセルなら、四角が並んで見えるように壁なしとする。
+        """
+        if is_ft(cx, cy - 1) and is_ft(cx, cy):
+            return 0
         if cy == H:
             return (maze[H - 1][cx] >> 2) & 1
         return (maze[cy][cx] >> 0) & 1
 
     def v_wall(cx: int, cy: int) -> int:
-        """交差点 (cx, cy) から下方向への垂直壁の有無を返す (1=壁あり)。"""
+        """交差点 (cx, cy) から下方向への垂直壁の有無を返す (1=壁あり)。
+
+        左右とも42模様のセルなら、四角が並んで見えるように壁なしとする。
+        """
+        if is_ft(cx - 1, cy) and is_ft(cx, cy):
+            return 0
         if cx == W:
             return (maze[cy][W - 1] >> 1) & 1
         return (maze[cy][cx] >> 3) & 1
@@ -87,26 +128,59 @@ def draw_maze(
             down = v_wall(cx, cy) if cy < H else 0
             corner_row += corners[(left, right, up, down)]
             if cx < W:
-                corner_row += "─" if h_wall(cx, cy) else " "
+                if "S" in links.get((cx, cy - 1), set()):
+                    corner_row += path_mark("┃")
+                else:
+                    corner_row += "─" if h_wall(cx, cy) else " "
         print(color + corner_row + reset)
         if cy < H:
             cell_row = ""
             for cx in range(W + 1):
-                cell_row += "│" if v_wall(cx, cy) else " "
+                if "E" in links.get((cx - 1, cy), set()):
+                    cell_row += path_mark("━")
+                else:
+                    cell_row += "│" if v_wall(cx, cy) else " "
                 if cx < W:
-                    cell_row += "·" if (cx, cy) in coords else " "
+                    if is_ft(cx, cy):
+                        cell_row += ft_mark
+                    elif (cx, cy) == entry:
+                        cell_row += entry_mark
+                    elif (cx, cy) == exit_:
+                        cell_row += exit_mark
+                    elif (cx, cy) in links:
+                        cell_row += path_mark(path_char(cx, cy))
+                    else:
+                        cell_row += " "
             print(color + cell_row + reset)
 
 
 COLORS = ["\033[37m", "\033[31m", "\033[32m", "\033[33m", "\033[34m"]
 COLOR_NAMES = ["white", "red", "green", "yellow", "blue"]
+ENTRY_COLOR = "\033[1;35m"
+EXIT_COLOR = "\033[1;36m"
+FT_COLOR = "\033[38;5;250m"
+PATH_COLOR = "\033[38;5;214m"
+# 経路の線の形。つながる方向の組み合わせから選ぶ
+PATH_CHARS = {
+    frozenset("EW"): "━", frozenset("NS"): "┃",
+    frozenset("SE"): "┏", frozenset("SW"): "┓",
+    frozenset("NE"): "┗", frozenset("NW"): "┛",
+    frozenset("E"): "━", frozenset("W"): "━",
+    frozenset("N"): "┃", frozenset("S"): "┃",
+}
 
 
-def menu(data: dict) -> None:
+def menu(
+    data: dict | None,
+    regenerate: Callable[[], dict | None] | None = None,
+) -> None:
     """インタラクティブメニューを表示し、ユーザー操作を受け付けるループ。
 
     Args:
         data: input_file() の返り値。maze, entry, exit_, path を含む辞書。
+            読み込み失敗時の None も受け付け、エラーを表示して終了する。
+        regenerate: 新しい迷路を生成し、data と同じ形の辞書を返す関数。
+            メニューの 1 で呼ぶ。None なら再生成は使えない。
     """
     if data is None:
         print("Error: 迷路データの読み込みに失敗しました")
@@ -118,16 +192,32 @@ def menu(data: dict) -> None:
 
     while True:
         coords = path_coords if show_path else None
-        draw_maze(maze, COLORS[color_index], coords)
+        draw_maze(
+            maze, COLORS[color_index], coords, data["entry"], data["exit"]
+        )
         print("\n=== A-Maze-ing ===")
         print("1. Re-generate a new maze")
         print("2. Show / Hide the shortest path")
         print("3. Rotate the wall colours")
         print("4. Quit")
-        choice = input("Choice? (1-4): ").strip()
+        try:
+            choice = input("Choice? (1-4): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            # Ctrl-D / Ctrl-C は Quit と同じ扱いにする
+            print()
+            break
 
         if choice == "1":
-            pass  # TODO: バックエンドを呼び出して再生成
+            if regenerate is None:
+                print("Error: 再生成は使えません")
+                continue
+            new_data = regenerate()
+            if new_data is None:
+                print("Error: 迷路の再生成に失敗しました")
+                continue
+            data = new_data
+            maze = data["maze"]
+            path_coords = calc_path(data["entry"], data["path"])
         elif choice == "2":
             show_path = not show_path
         elif choice == "3":
