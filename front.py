@@ -39,6 +39,8 @@ def draw_maze(
     maze: list[list[int]],
     color: str = "\033[37m",
     path_coords: list[tuple] | None = None,
+    entry: tuple | None = None,
+    exit_: tuple | None = None,
 ) -> None:
     """迷路をUnicodeボックス描画文字でターミナルに表示する。
 
@@ -49,11 +51,16 @@ def draw_maze(
         maze: 2次元配列。maze[y][x] がセルの壁情報 (16進数1桁)。
         color: ANSIエスケープカラーコード。デフォルトは白。
         path_coords: 最短経路の座標リスト [(x, y), ...]。None なら非表示。
+        entry: 入口の座標 (x, y)。S で表示する。None なら印なし。
+        exit_: 出口の座標 (x, y)。G で表示する。None なら印なし。
     """
     H = len(maze)
     W = len(maze[0])
     reset = "\033[0m"
     coords = set(path_coords) if path_coords else set()
+    # 印の後に壁の色へ戻す
+    entry_mark = ENTRY_COLOR + "S" + reset + color
+    exit_mark = EXIT_COLOR + "G" + reset + color
 
     def h_wall(cx: int, cy: int) -> int:
         """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。"""
@@ -94,12 +101,21 @@ def draw_maze(
             for cx in range(W + 1):
                 cell_row += "│" if v_wall(cx, cy) else " "
                 if cx < W:
-                    cell_row += "·" if (cx, cy) in coords else " "
+                    if (cx, cy) == entry:
+                        cell_row += entry_mark
+                    elif (cx, cy) == exit_:
+                        cell_row += exit_mark
+                    elif (cx, cy) in coords:
+                        cell_row += "·"
+                    else:
+                        cell_row += " "
             print(color + cell_row + reset)
 
 
 COLORS = ["\033[37m", "\033[31m", "\033[32m", "\033[33m", "\033[34m"]
 COLOR_NAMES = ["white", "red", "green", "yellow", "blue"]
+ENTRY_COLOR = "\033[1;35m"
+EXIT_COLOR = "\033[1;36m"
 
 
 def menu(data: dict) -> None:
@@ -118,7 +134,9 @@ def menu(data: dict) -> None:
 
     while True:
         coords = path_coords if show_path else None
-        draw_maze(maze, COLORS[color_index], coords)
+        draw_maze(
+            maze, COLORS[color_index], coords, data["entry"], data["exit"]
+        )
         print("\n=== A-Maze-ing ===")
         print("1. Re-generate a new maze")
         print("2. Show / Hide the shortest path")
