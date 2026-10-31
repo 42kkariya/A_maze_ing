@@ -102,10 +102,9 @@ def loading_config(file_name: str) -> Config:
     exit = result["EXIT"]
 
     if (
-        entry == exit
-        or height <= 0
-        or width <= 0
-        or not (0 <= entry[0] < width and 0 <= entry[1] < height)
+        entry == exit or
+        not result["PERFECT"] and (width < 4 or height < 4) or
+        not (0 <= entry[0] < width and 0 <= entry[1] < height)
         or not (0 <= exit[0] < width and 0 <= exit[1] < height)
     ):
         raise ValueError("不正な値が入力されています。")
