@@ -14,4 +14,4 @@ authors = [{ name = "kkariya", email = "kkariya@student.42tokyo.jp" }]
 packages = ["mazegen"]
 
 [tool.mypy]
-exclude = '^(\.venv|build|dist|tools)/'
+exclude = '^(\.venv|build|dist)/'
