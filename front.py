@@ -118,11 +118,12 @@ ENTRY_COLOR = "\033[1;35m"
 EXIT_COLOR = "\033[1;36m"
 
 
-def menu(data: dict) -> None:
+def menu(data: dict | None) -> None:
     """インタラクティブメニューを表示し、ユーザー操作を受け付けるループ。
 
     Args:
         data: input_file() の返り値。maze, entry, exit_, path を含む辞書。
+            読み込み失敗時の None も受け付け、エラーを表示して終了する。
     """
     if data is None:
         print("Error: 迷路データの読み込みに失敗しました")
@@ -142,7 +143,12 @@ def menu(data: dict) -> None:
         print("2. Show / Hide the shortest path")
         print("3. Rotate the wall colours")
         print("4. Quit")
-        choice = input("Choice? (1-4): ").strip()
+        try:
+            choice = input("Choice? (1-4): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            # Ctrl-D / Ctrl-C は Quit と同じ扱いにする
+            print()
+            break
 
         if choice == "1":
             pass  # TODO: バックエンドを呼び出して再生成
