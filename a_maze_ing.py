@@ -1,10 +1,24 @@
 import sys
+from typing import TypedDict, cast
 from MazeGenerator import Mazegenerator
 
 ConfigValue = int | bool | str | tuple[int, int]
 
 
-def loading_config(file_name: str) -> dict[str, ConfigValue]:
+class RequiredConfig(TypedDict):
+    WIDTH: int
+    HEIGHT: int
+    ENTRY: tuple[int, int]
+    EXIT: tuple[int, int]
+    OUTPUT_FILE: str
+    PERFECT: bool
+
+
+class Config(RequiredConfig, total=False):
+    SEED: int
+
+
+def loading_config(file_name: str) -> Config:
     """設定ファイルを読み込み、各値を適切な型に変換する。"""
     config: dict[str, ConfigValue] = {}
 
@@ -77,17 +91,23 @@ def loading_config(file_name: str) -> dict[str, ConfigValue]:
             f"必須項目が不足しています: {', '.join(missing)}"
         )
 
-    if (config["ENTRY"] == config["EXIT"] or
-        config["HEIGHT"] > 0 or config["WIDTH"] > 0 or
-        0 <= config["ENTRY"][0] < config["WIDTH"] or
-        0 <= config["ENTRY"][1] < config["HEIGHT"] or
-        0 <= config["EXIT"][0] < config["WIDTH"] or
-        0 <= config["EXIT"][1] < config["HEIGHT"]):
+    result = cast(Config, config)
 
+    width = result["WIDTH"]
+    height = result["HEIGHT"]
+    entry = result["ENTRY"]
+    exit = result["EXIT"]
+
+    if (
+        entry == exit
+        or height <= 0
+        or width <= 0
+        or not (0 <= entry[0] < width and 0 <= entry[1] < height)
+        or not (0 <= exit[0] < width and 0 <= exit[1] < height)
+    ):
         raise ValueError("不正な値が入力されています。")
 
-
-    return config
+    return result
 
 
 def main() -> None:
@@ -98,23 +118,21 @@ def main() -> None:
     try:
         config = loading_config(sys.argv[1])
         maze = Mazegenerator(
-        config["WIDTH"], config["HEIGHT"],
-        config["ENTRY"], config["EXIT"],
-        config["OUTPUT_FILE"],
-        seed=config.get("SEED"),
-        perfect=config["PERFECT"],
+            config["WIDTH"], config["HEIGHT"],
+            config["ENTRY"], config["EXIT"],
+            config["OUTPUT_FILE"],
+            seed=config.get("SEED"),
+            perfect=config["PERFECT"],
         )
         maze.maze_gen()
         maze.write_to_file()
 
     except FileNotFoundError:
-        print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}"
-              , file=sys.stderr)
+        print(f"エラー: 設定ファイルが見つかりません: {sys.argv[1]}", file=sys.stderr)
         sys.exit(1)
 
     except PermissionError:
-        print("エラー: 設定ファイルを読み込む権限がありません"
-              ,file=sys.stderr)
+        print("エラー: 設定ファイルを読み込む権限がありません", file=sys.stderr)
         sys.exit(1)
 
     except Exception as e:

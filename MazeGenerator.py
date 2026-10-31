@@ -2,6 +2,7 @@ import random
 from collections import deque
 import sys
 
+
 class Cell:
     def __init__(self) -> None:
         self.north = True
@@ -15,8 +16,8 @@ class Cell:
 
 class Mazegenerator:
     def __init__(self, width: int, height: int, entry: tuple[int, int],
-                exit: tuple[int, int], output_file: str,
-                *,seed: int | None = None, perfect: bool = False) -> None:
+                 exit: tuple[int, int], output_file: str,
+                 *, seed: int | None = None, perfect: bool = False) -> None:
         self.width = width
         self.height = height
         self.entry = entry
@@ -24,17 +25,17 @@ class Mazegenerator:
         self.output_file = output_file
         self.seed = seed
         self.perfect = perfect
-        self.grid = []
+        self.grid: list[list[Cell]] = []
         self.open_extra = False
-        self.dead_ends = []
+        self.dead_ends: list[tuple[int, int]] = []
 
     def maze_gen(self) -> None:
         """DFSを使ったランダム化バックトラック法による迷路生成。"""
 
         random.seed(self.seed)
         self.grid = [
-        [Cell() for _ in range(self.width)]
-        for _ in range(self.height)
+            [Cell() for _ in range(self.width)]
+            for _ in range(self.height)
         ]
         stack = [self.entry]
 
@@ -59,13 +60,12 @@ class Mazegenerator:
             self.find_dead_ends()
             self.open_extra_passage()
 
-
-
     def open_extra_passage(self) -> None:
         """行き止まりのセルに穴をあけ経路を増やす"""
         while self.dead_ends:
 
-            dead_end = self.dead_ends.pop(random.randrange(len(self.dead_ends)))
+            index = random.randrange(len(self.dead_ends))
+            dead_end = self.dead_ends.pop(index)
             dead_x, dead_y = dead_end
             cell = self.grid[dead_y][dead_x]
             wall_count = cell.north + cell.east + cell.south + cell.west
@@ -76,13 +76,10 @@ class Mazegenerator:
 
             self.carve_passage(next_grid, dead_x, dead_y)
 
-
-    def would_create_open_area(
-        self,
-        now_x: int,
-        now_y: int,
-        next_grid: tuple[int, int],
-    ) -> bool:
+    def would_create_open_area(self,
+                               now_x: int,
+                               now_y: int,
+                               next_grid: tuple[int, int]) -> bool:
         """壁を壊しても3*3にならないか確かめる。
 
         Args:
@@ -93,8 +90,9 @@ class Mazegenerator:
         Returns:
             壁を壊したらダメかの判断。
         """
-        next_x, next_y = next_grid
 
+        next_x, next_y = next_grid
+        opening: tuple[int, int, str]
         if now_y == next_y:
             opening = (min(now_x, next_x), now_y, "east")
         else:
@@ -153,7 +151,6 @@ class Mazegenerator:
 
         return False
 
-
     def find_dead_ends(self) -> None:
         """行き止まりのセルの座標をself.dead_endsに保存する。"""
         self.dead_ends = []
@@ -165,7 +162,6 @@ class Mazegenerator:
                 if wall_count != 3:
                     continue
                 self.dead_ends.append((x, y))
-
 
     def place_42_pattern(self) -> None:
         """迷路に42模様を設置する。"""
@@ -199,7 +195,6 @@ class Mazegenerator:
 
             return True
 
-
         place_42 = [(-1, 0), (-2, 0), (-3, 0), (-3, -1),
                     (-3, -2), (-1, 1), (-1, 2), (1, 0),
                     (2, 0), (3, 0), (3, -1), (3, -2),
@@ -224,7 +219,8 @@ class Mazegenerator:
                     break
 
         if self.height < 7 or self.width < 9 or not can_place:
-            print("Maze too small to include the '42' pattern. Continuing without it.",
+            print("Maze too small to include the '42' pattern."
+                  " Continuing without it.",
                   file=sys.stderr)
             return
 
@@ -233,7 +229,6 @@ class Mazegenerator:
             ft_y = center_y + d_y
 
             self.grid[ft_y][ft_x].ft = True
-
 
     def carve_passage(
             self,
@@ -272,11 +267,9 @@ class Mazegenerator:
 
         next_cell.visited = True
 
-
     def decide_next(self,
                     now_x: int,
-                    now_y: int
-    ) -> tuple[int, int] | None:
+                    now_y: int) -> tuple[int, int] | None:
         """条件を満たす隣接セルから、ランダムに移動先を選ぶ。
 
         Args:
@@ -288,7 +281,7 @@ class Mazegenerator:
         """
 
         next_list = []
-        checks =[(1, 0), (0, 1), (-1, 0), (0, -1)]
+        checks = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 
         for d_x, d_y in checks:
             check_x = now_x + d_x
@@ -310,7 +303,8 @@ class Mazegenerator:
             if self.open_extra:
                 now_cell = self.grid[now_y][now_x]
 
-                if self.would_create_open_area(now_x, now_y, (check_x, check_y)):
+                if self.would_create_open_area(
+                        now_x, now_y, (check_x, check_y)):
                     continue
                 if d_x == 1 and not now_cell.east:
                     continue
@@ -327,7 +321,6 @@ class Mazegenerator:
             return None
 
         return random.choice(next_list)
-
 
     def find_shortest_path(self) -> list[tuple[int, int]]:
         """BFSによる最短ルート検索。
@@ -364,7 +357,6 @@ class Mazegenerator:
 
         return shortest_path
 
-
     def get_accessible_neighbors(
             self,
             now_x: int,
@@ -378,7 +370,7 @@ class Mazegenerator:
 
         Returns:
             選ばれたセルのリスト。"""
-        checks =[(1, 0), (0, 1), (-1, 0), (0, -1)]
+        checks = [(1, 0), (0, 1), (-1, 0), (0, -1)]
         result = []
         now_cell = self.grid[now_y][now_x]
         for x, y in checks:
@@ -394,7 +386,6 @@ class Mazegenerator:
             if next_cell.ft or next_cell.path_visited:
                 continue
 
-
             if x == 1 and not now_cell.east:
                 result.append((next_x, next_y))
 
@@ -409,7 +400,6 @@ class Mazegenerator:
 
         return result
 
-
     def write_to_file(self) -> None:
         """迷路、最短経路を指定形式でファイルに保存する。 """
 
@@ -420,10 +410,10 @@ class Mazegenerator:
                     for x in range(self.width):
                         cell = self.grid[y][x]
                         value = (
-                        cell.north
-                        + cell.east * 2
-                        + cell.south * 4
-                        + cell.west * 8
+                            cell.north
+                            + cell.east * 2
+                            + cell.south * 4
+                            + cell.west * 8
                         )
                         hex_wall = format(value, "X")
                         f.write(hex_wall)
@@ -431,10 +421,10 @@ class Mazegenerator:
                 f.write("\n")
                 f.write(f"{self.entry[0]},{self.entry[1]}\n")
                 f.write(f"{self.exit[0]},{self.exit[1]}\n")
-                first_x , first_y = self.entry
+                first_x, first_y = self.entry
                 for next_x, next_y in shortest_path[1:]:
                     direction = ((next_x - first_x) +
-                                2 * (next_y - first_y))
+                                 2 * (next_y - first_y))
                     if direction == 1:
                         f.write("E")
 
