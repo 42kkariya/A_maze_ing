@@ -61,15 +61,30 @@ def draw_maze(
     # 印の後に壁の色へ戻す
     entry_mark = ENTRY_COLOR + "S" + reset + color
     exit_mark = EXIT_COLOR + "G" + reset + color
+    ft_mark = FT_COLOR + "█" + reset + color
+
+    def is_ft(x: int, y: int) -> bool:
+        """セル (x, y) が四方を壁で囲まれた42模様のセルかを返す。"""
+        return 0 <= x < W and 0 <= y < H and maze[y][x] == 0xF
 
     def h_wall(cx: int, cy: int) -> int:
-        """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。"""
+        """交差点 (cx, cy) から右方向への水平壁の有無を返す (1=壁あり)。
+
+        上下とも42模様のセルなら、四角が並んで見えるように壁なしとする。
+        """
+        if is_ft(cx, cy - 1) and is_ft(cx, cy):
+            return 0
         if cy == H:
             return (maze[H - 1][cx] >> 2) & 1
         return (maze[cy][cx] >> 0) & 1
 
     def v_wall(cx: int, cy: int) -> int:
-        """交差点 (cx, cy) から下方向への垂直壁の有無を返す (1=壁あり)。"""
+        """交差点 (cx, cy) から下方向への垂直壁の有無を返す (1=壁あり)。
+
+        左右とも42模様のセルなら、四角が並んで見えるように壁なしとする。
+        """
+        if is_ft(cx - 1, cy) and is_ft(cx, cy):
+            return 0
         if cx == W:
             return (maze[cy][W - 1] >> 1) & 1
         return (maze[cy][cx] >> 3) & 1
@@ -101,7 +116,9 @@ def draw_maze(
             for cx in range(W + 1):
                 cell_row += "│" if v_wall(cx, cy) else " "
                 if cx < W:
-                    if (cx, cy) == entry:
+                    if is_ft(cx, cy):
+                        cell_row += ft_mark
+                    elif (cx, cy) == entry:
                         cell_row += entry_mark
                     elif (cx, cy) == exit_:
                         cell_row += exit_mark
@@ -116,6 +133,7 @@ COLORS = ["\033[37m", "\033[31m", "\033[32m", "\033[33m", "\033[34m"]
 COLOR_NAMES = ["white", "red", "green", "yellow", "blue"]
 ENTRY_COLOR = "\033[1;35m"
 EXIT_COLOR = "\033[1;36m"
+FT_COLOR = "\033[38;5;250m"
 
 
 def menu(data: dict | None) -> None:
