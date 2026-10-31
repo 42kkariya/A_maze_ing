@@ -1,7 +1,7 @@
 import sys
 from typing import TypedDict, cast
 from mazegen import Mazegenerator
-from front import input_file, menu
+from front import MazeData, input_file, menu
 
 ConfigValue = int | bool | str | tuple[int, int]
 
@@ -112,7 +112,7 @@ def loading_config(file_name: str) -> Config:
     return result
 
 
-def generate(config: Config, seed: int | None) -> dict | None:
+def generate(config: Config, seed: int | None) -> MazeData | None:
     """迷路を生成して OUTPUT_FILE に書き出し、表示用の辞書を返す。
 
     Args:
