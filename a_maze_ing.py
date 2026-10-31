@@ -103,8 +103,8 @@ def loading_config(file_name: str) -> Config:
 
     if (
         entry == exit
-        or height < 3
-        or width < 3
+        or (height < 3 and
+        width < 3)
         or not (0 <= entry[0] < width and 0 <= entry[1] < height)
         or not (0 <= exit[0] < width and 0 <= exit[1] < height)
     ):
