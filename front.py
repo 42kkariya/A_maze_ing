@@ -1,3 +1,6 @@
+from typing import Callable
+
+
 def input_file(file: str) -> dict | None:
     """迷路ファイルを読み込んで辞書形式で返す。
 
@@ -136,12 +139,17 @@ EXIT_COLOR = "\033[1;36m"
 FT_COLOR = "\033[38;5;250m"
 
 
-def menu(data: dict | None) -> None:
+def menu(
+    data: dict | None,
+    regenerate: Callable[[], dict | None] | None = None,
+) -> None:
     """インタラクティブメニューを表示し、ユーザー操作を受け付けるループ。
 
     Args:
         data: input_file() の返り値。maze, entry, exit_, path を含む辞書。
             読み込み失敗時の None も受け付け、エラーを表示して終了する。
+        regenerate: 新しい迷路を生成し、data と同じ形の辞書を返す関数。
+            メニューの 1 で呼ぶ。None なら再生成は使えない。
     """
     if data is None:
         print("Error: 迷路データの読み込みに失敗しました")
@@ -169,7 +177,16 @@ def menu(data: dict | None) -> None:
             break
 
         if choice == "1":
-            pass  # TODO: バックエンドを呼び出して再生成
+            if regenerate is None:
+                print("Error: 再生成は使えません")
+                continue
+            new_data = regenerate()
+            if new_data is None:
+                print("Error: 迷路の再生成に失敗しました")
+                continue
+            data = new_data
+            maze = data["maze"]
+            path_coords = calc_path(data["entry"], data["path"])
         elif choice == "2":
             show_path = not show_path
         elif choice == "3":
